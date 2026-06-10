@@ -107,11 +107,14 @@ impl Game {
             self.vel_y = -self.vel_y.abs();
         }
 
-        // Bounce off the paddles.
+        // Bounce off the paddles: reflect both the velocity and the position so
+        // the ball sits in front of the paddle instead of hiding inside it.
         if self.ball_x == self.bot_col() && self.covers(self.bot_y, self.ball_y) {
             self.vel_x = 1;
+            self.ball_x = self.bot_col() + 1;
         } else if self.ball_x == self.player_col() && self.covers(self.player_y, self.ball_y) {
             self.vel_x = -1;
+            self.ball_x = self.player_col() - 1;
         }
 
         // Score when the ball leaves the field, then serve toward whoever conceded.
@@ -200,6 +203,11 @@ mod tests {
         g.player_y = g.ball_y - 1; // ensure the paddle covers the ball row
         g.step(TICK_MS);
         assert_eq!(g.vel_x, -1, "ball should rebound toward the bot");
+        assert_eq!(
+            g.ball_x,
+            g.player_col() - 1,
+            "ball should sit in front of the paddle, not inside it"
+        );
     }
 
     #[test]
