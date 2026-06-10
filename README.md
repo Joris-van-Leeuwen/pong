@@ -1,15 +1,15 @@
 # Pong
 
-A tiny terminal Pong game in Rust. You control the left paddle; a bot controls
-the right paddle and chases the ball.
+A tiny terminal Pong game in Rust. You control the right paddle; a bot controls
+the left paddle and chases the ball.
 
 ```
-You 1    Bot 0
+Bot 0    You 1
 
- #                                    O   #
- #                                        #
- #                                        #
- #                                        #
+ #                                    O                     #
+ #                                                          #
+ #                                                          #
+ #                                                          #
 ```
 
 ## Controls
@@ -39,4 +39,4 @@ cargo test
   with no terminal I/O so it can be unit-tested directly.
 - `src/main.rs` — the terminal loop: reads keys, ticks the game, and renders.
 
-The bot moves one row per tick toward the ball, so it is beatable.
+The bot (left paddle) moves one row per tick toward the ball, so it is beatable.

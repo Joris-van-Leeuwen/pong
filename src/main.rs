@@ -14,7 +14,7 @@ use crossterm::{cursor, execute, terminal};
 
 use game::{covers, Game, BOT_COL, HEIGHT, PLAYER_COL, WIDTH};
 
-const TICK: Duration = Duration::from_millis(60);
+const TICK: Duration = Duration::from_millis(90);
 
 fn main() {
     if let Err(e) = run() {
@@ -70,7 +70,7 @@ fn teardown() -> io::Result<()> {
 
 fn render(g: &Game) -> io::Result<()> {
     let mut out = String::new();
-    out.push_str(&format!("You {}    Bot {}\r\n", g.player_score, g.bot_score));
+    out.push_str(&format!("Bot {}    You {}\r\n", g.bot_score, g.player_score));
 
     for y in 0..HEIGHT {
         for x in 0..WIDTH {

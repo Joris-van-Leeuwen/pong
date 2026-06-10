@@ -1,13 +1,13 @@
 //! Pure Pong game logic — no terminal I/O, so it can be unit-tested directly.
 
-pub const WIDTH: i32 = 40;
-pub const HEIGHT: i32 = 20;
+pub const WIDTH: i32 = 60;
+pub const HEIGHT: i32 = 24;
 pub const PADDLE_H: i32 = 4;
 
-/// Column the player's paddle lives on (left edge).
-pub const PLAYER_COL: i32 = 1;
-/// Column the bot's paddle lives on (right edge).
-pub const BOT_COL: i32 = WIDTH - 2;
+/// Column the bot's paddle lives on (left edge).
+pub const BOT_COL: i32 = 1;
+/// Column the player's paddle lives on (right edge).
+pub const PLAYER_COL: i32 = WIDTH - 2;
 
 /// True if a paddle whose top is `top` occupies row `y`.
 pub fn covers(top: i32, y: i32) -> bool {
@@ -61,19 +61,19 @@ impl Game {
         }
 
         // Bounce off the paddles.
-        if self.ball_x == PLAYER_COL && covers(self.player_y, self.ball_y) {
+        if self.ball_x == BOT_COL && covers(self.bot_y, self.ball_y) {
             self.vel_x = 1;
-        } else if self.ball_x == BOT_COL && covers(self.bot_y, self.ball_y) {
+        } else if self.ball_x == PLAYER_COL && covers(self.player_y, self.ball_y) {
             self.vel_x = -1;
         }
 
-        // Score when the ball leaves the field, then serve toward the loser.
+        // Score when the ball leaves the field, then serve toward whoever conceded.
         if self.ball_x <= 0 {
-            self.bot_score += 1;
-            self.serve(1);
-        } else if self.ball_x >= WIDTH - 1 {
-            self.player_score += 1;
+            self.player_score += 1; // past the bot (left)
             self.serve(-1);
+        } else if self.ball_x >= WIDTH - 1 {
+            self.bot_score += 1; // past the player (right)
+            self.serve(1);
         }
 
         self.move_bot();
@@ -129,18 +129,18 @@ mod tests {
     #[test]
     fn player_paddle_bounces_ball() {
         let mut g = Game::new();
-        g.ball_x = PLAYER_COL + 1;
-        g.vel_x = -1;
+        g.ball_x = PLAYER_COL - 1;
+        g.vel_x = 1;
         g.player_y = g.ball_y - 1; // ensure the paddle covers the ball row
         g.step();
-        assert_eq!(g.vel_x, 1, "ball should rebound toward the bot");
+        assert_eq!(g.vel_x, -1, "ball should rebound toward the bot");
     }
 
     #[test]
     fn missed_ball_scores_for_bot() {
         let mut g = Game::new();
-        g.ball_x = 1;
-        g.vel_x = -1;
+        g.ball_x = WIDTH - 2;
+        g.vel_x = 1;
         g.player_y = 0; // keep the paddle clear of the ball
         g.ball_y = HEIGHT - 1;
         g.step();
