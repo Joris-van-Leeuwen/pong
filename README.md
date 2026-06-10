@@ -14,12 +14,12 @@ Bot 0    You 1
 
 ## Controls
 
-| Key     | Action                          |
-| ------- | ------------------------------- |
-| Up      | Move your paddle up             |
-| Down    | Move your paddle down           |
-| Right   | Quit with **success** (exit 0)  |
-| Left    | Quit with an **error** (exit 1) |
+| Key           | Action                          |
+| ------------- | ------------------------------- |
+| Up            | Move your paddle up             |
+| Down          | Move your paddle down           |
+| Right / `q`   | Quit with **success** (exit 0)  |
+| Left / Escape | Quit with an **error** (exit 1) |
 
 ## Run
 

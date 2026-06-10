@@ -37,8 +37,8 @@ fn run() -> io::Result<()> {
                 match key.code {
                     KeyCode::Up => game.move_player(-1),
                     KeyCode::Down => game.move_player(1),
-                    KeyCode::Right => quit(0),
-                    KeyCode::Left => quit(1),
+                    KeyCode::Right | KeyCode::Char('q') => quit(0),
+                    KeyCode::Left | KeyCode::Esc => quit(1),
                     _ => {}
                 }
             }
@@ -87,7 +87,6 @@ fn render(g: &Game) -> io::Result<()> {
         }
         out.push_str("\r\n");
     }
-    out.push_str("Up/Down: move   Right: quit ok   Left: quit error\r\n");
 
     let mut stdout = io::stdout();
     execute!(stdout, cursor::MoveTo(0, 0))?;
