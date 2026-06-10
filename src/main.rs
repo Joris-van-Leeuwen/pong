@@ -45,7 +45,7 @@ fn run() -> io::Result<()> {
         }
 
         if last.elapsed() >= TICK {
-            game.step();
+            game.step(TICK.as_millis() as i32);
             render(&game)?;
             last = Instant::now();
         }

@@ -39,4 +39,6 @@ cargo test
   with no terminal I/O so it can be unit-tested directly.
 - `src/main.rs` — the terminal loop: reads keys, ticks the game, and renders.
 
-The bot (left paddle) moves one row per tick toward the ball, so it is beatable.
+The bot (left paddle) chases the ball one row per tick, but must hold its
+current vertical direction for 500 ms before it may reverse. That delay makes
+it overshoot the ball, so it is beatable.

@@ -9,6 +9,10 @@ pub const BOT_COL: i32 = 1;
 /// Column the player's paddle lives on (right edge).
 pub const PLAYER_COL: i32 = WIDTH - 2;
 
+/// The bot must hold its current vertical direction this long before it is
+/// allowed to reverse — a handicap that makes it overshoot and miss.
+pub const BOT_INVERT_DELAY_MS: i32 = 500;
+
 /// True if a paddle whose top is `top` occupies row `y`.
 pub fn covers(top: i32, y: i32) -> bool {
     y >= top && y < top + PADDLE_H
@@ -24,6 +28,10 @@ pub struct Game {
     pub vel_y: i32,
     pub player_score: u32,
     pub bot_score: u32,
+    /// Direction the bot's paddle is currently moving: -1 up, 0 still, 1 down.
+    pub bot_dir: i32,
+    /// Time left before the bot may reverse direction (milliseconds).
+    invert_wait_ms: i32,
 }
 
 impl Game {
@@ -38,6 +46,8 @@ impl Game {
             vel_y: 1,
             player_score: 0,
             bot_score: 0,
+            bot_dir: 0,
+            invert_wait_ms: BOT_INVERT_DELAY_MS,
         }
     }
 
@@ -46,8 +56,9 @@ impl Game {
         self.player_y = (self.player_y + dy).clamp(0, HEIGHT - PADDLE_H);
     }
 
-    /// Advance the game by one tick: ball, collisions, scoring, then bot.
-    pub fn step(&mut self) {
+    /// Advance the game by one tick of `dt_ms` milliseconds: ball, collisions,
+    /// scoring, then the bot.
+    pub fn step(&mut self, dt_ms: i32) {
         self.ball_x += self.vel_x;
         self.ball_y += self.vel_y;
 
@@ -76,7 +87,7 @@ impl Game {
             self.serve(1);
         }
 
-        self.move_bot();
+        self.move_bot(dt_ms);
     }
 
     /// Reset the ball to the centre, heading horizontally in `dir`.
@@ -87,15 +98,27 @@ impl Game {
         self.vel_y = 1;
     }
 
-    /// Bot chases the ball one row at a time, so it's beatable.
-    fn move_bot(&mut self) {
+    /// Bot chases the ball one row at a time, but can only reverse direction
+    /// after holding the current one for `BOT_INVERT_DELAY_MS` — so it
+    /// overshoots and is beatable.
+    fn move_bot(&mut self, dt_ms: i32) {
         let center = self.bot_y + PADDLE_H / 2;
-        if center < self.ball_y {
-            self.bot_y += 1;
-        } else if center > self.ball_y {
-            self.bot_y -= 1;
+        let desired = (self.ball_y - center).signum();
+
+        if self.bot_dir != 0 && desired == -self.bot_dir {
+            // The bot wants to reverse: keep going the old way until the timer runs out.
+            self.invert_wait_ms -= dt_ms;
+            if self.invert_wait_ms <= 0 {
+                self.bot_dir = desired;
+                self.invert_wait_ms = BOT_INVERT_DELAY_MS;
+            }
+        } else {
+            // Following the ball (or aligned): no reversal pending, keep the timer charged.
+            self.bot_dir = desired;
+            self.invert_wait_ms = BOT_INVERT_DELAY_MS;
         }
-        self.bot_y = self.bot_y.clamp(0, HEIGHT - PADDLE_H);
+
+        self.bot_y = (self.bot_y + self.bot_dir).clamp(0, HEIGHT - PADDLE_H);
     }
 }
 
@@ -109,11 +132,14 @@ impl Default for Game {
 mod tests {
     use super::*;
 
+    /// A representative tick length for stepping the game in tests.
+    const TICK_MS: i32 = 90;
+
     #[test]
     fn ball_moves_each_step() {
         let mut g = Game::new();
         let (x, y) = (g.ball_x, g.ball_y);
-        g.step();
+        g.step(TICK_MS);
         assert_eq!((g.ball_x, g.ball_y), (x + g.vel_x, y + g.vel_y));
     }
 
@@ -122,7 +148,7 @@ mod tests {
         let mut g = Game::new();
         g.ball_y = 0;
         g.vel_y = -1;
-        g.step();
+        g.step(TICK_MS);
         assert!(g.vel_y > 0, "vertical velocity should flip downward");
     }
 
@@ -132,7 +158,7 @@ mod tests {
         g.ball_x = PLAYER_COL - 1;
         g.vel_x = 1;
         g.player_y = g.ball_y - 1; // ensure the paddle covers the ball row
-        g.step();
+        g.step(TICK_MS);
         assert_eq!(g.vel_x, -1, "ball should rebound toward the bot");
     }
 
@@ -143,7 +169,7 @@ mod tests {
         g.vel_x = 1;
         g.player_y = 0; // keep the paddle clear of the ball
         g.ball_y = HEIGHT - 1;
-        g.step();
+        g.step(TICK_MS);
         assert_eq!(g.bot_score, 1);
         assert_eq!(g.ball_x, WIDTH / 2, "ball returns to centre after a point");
     }
@@ -163,7 +189,32 @@ mod tests {
         g.bot_y = 0;
         g.ball_y = HEIGHT - 1;
         let before = g.bot_y;
-        g.step();
+        g.step(TICK_MS);
         assert!(g.bot_y > before, "bot should move toward the ball");
+    }
+
+    #[test]
+    fn bot_waits_before_reversing() {
+        let mut g = Game::new();
+        g.bot_y = 8;
+        // Ball below: bot commits to moving down.
+        g.ball_y = HEIGHT - 1;
+        g.step(100);
+        assert_eq!(g.bot_dir, 1);
+        let y_when_reversal_requested = g.bot_y;
+
+        // Ball jumps above: the bot wants to reverse but must wait 500ms.
+        g.ball_y = 0;
+        g.step(200);
+        g.step(200); // 400ms elapsed — still under the limit
+        assert_eq!(g.bot_dir, 1, "bot holds its old direction during the delay");
+        assert!(
+            g.bot_y >= y_when_reversal_requested,
+            "bot keeps moving the old way (overshoots) while waiting"
+        );
+
+        // Crossing 500ms total finally lets it reverse.
+        g.step(200);
+        assert_eq!(g.bot_dir, -1, "bot reverses once the delay has elapsed");
     }
 }
