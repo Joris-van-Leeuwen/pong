@@ -44,7 +44,8 @@ cargo run -- --width 80 --height 30 --paddle 6 --ball-speed 60 --bot-delay 800
 | `--ball-speed` | `90`    | Milliseconds the ball takes to advance one cell — **lower is faster**.                    |
 | `--bot-delay`  | `500`   | Milliseconds the bot must hold its direction before reversing — **higher is easier**.    |
 
-Run `cargo run -- --help` to see this list in the terminal.
+Run `cargo run -- --help` (the flag) or `cargo run -- help` (the subcommand) to
+see this list in the terminal — both print the same thing.
 
 Validation is enforced at startup (exits with code `2` on bad input): the width
 must be at least `5`, the paddle at least `1` and no taller than the field, the

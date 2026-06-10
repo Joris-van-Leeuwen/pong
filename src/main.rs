@@ -12,7 +12,7 @@ use std::io::{self, Write};
 use std::process;
 use std::time::{Duration, Instant};
 
-use clap::Parser;
+use clap::{CommandFactory, Parser, Subcommand};
 use crossterm::event::{self, Event, KeyCode};
 use crossterm::{cursor, execute, terminal};
 
@@ -23,8 +23,17 @@ const DEFAULT_BALL_SPEED_MS: u64 = 90;
 
 /// Terminal Pong against a bot.
 #[derive(Parser)]
-#[command(about, long_about = None)]
+#[command(
+    about,
+    long_about = None,
+    disable_help_subcommand = true,
+    after_help = "Run with no options to play, or `pong help` to show this message."
+)]
 struct Args {
+    /// Optional subcommand (e.g. `help`); omit it to start playing.
+    #[command(subcommand)]
+    command: Option<Command>,
+
     /// Field width in columns.
     #[arg(long, default_value_t = DEFAULT_WIDTH)]
     width: i32,
@@ -44,6 +53,12 @@ struct Args {
     /// Bot reversal delay in milliseconds — higher makes the bot easier to beat.
     #[arg(long, default_value_t = DEFAULT_BOT_DELAY_MS)]
     bot_delay: i32,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// Print this help message and exit.
+    Help,
 }
 
 impl Args {
@@ -71,6 +86,12 @@ impl Args {
 
 fn main() {
     let args = Args::parse();
+
+    if let Some(Command::Help) = args.command {
+        Args::command().print_help().expect("write help to stdout");
+        return;
+    }
+
     if let Err(e) = args.validate() {
         eprintln!("error: {e}");
         process::exit(2);
